@@ -34,15 +34,19 @@ if clientID!=-1:
 
     # Now try to retrieve data in a blocking fashion (i.e. a service call):
     res,objs=sim.simxGetObjects(clientID,sim.sim_handle_all,sim.simx_opmode_blocking)
+
     # Get Camera Handle
     errorCode,visionSensorHandle = sim.simxGetObjectHandle(clientID,'vcam',sim.simx_opmode_oneshot_wait)
+
+    # Get Motors Handle
+    errorCode,leftMotorHandle = sim.simxGetObjectHandle(clientID,'Pioneer_p3dx_leftMotor',sim.simx_opmode_oneshot_wait)
+    errorCode,rightMotorHandle = sim.simxGetObjectHandle(clientID,'Pioneer_p3dx_rightMotor',sim.simx_opmode_oneshot_wait)
+
 
     if res==sim.simx_return_ok:
         print ('Number of objects in the scene: ',len(objs))
     else:
         print ('Remote API function call returned with error code: ',res)
-
-    time.sleep(2)
 
     # Now retrieve streaming data (i.e. in a non-blocking fashion):
     startTime=time.time()
@@ -54,7 +58,7 @@ if clientID!=-1:
         time.sleep(0.1)
         errprCode,resolution,image = sim.simxGetVisionSensorImage(clientID,visionSensorHandle,0,sim.simx_opmode_buffer)
         
-        #Process the image to the format (64,64,3)
+        #Process the image to the format (512,512,3)
         sensorImage = []
         sensorImage = np.array(image,dtype = np.uint8)
         sensorImage.resize([resolution[0],resolution[1],3])
@@ -62,7 +66,10 @@ if clientID!=-1:
         #Use matplotlib.imshow to show the image
         mpl.imshow(sensorImage,origin='lower')
         mpl.pause(0.05)
-    
+        
+        #Set Motors Speed
+        sim.simxSetJointTargetVelocity(clientID,leftMotorHandle,3,sim.simx_opmode_oneshot) # Speed is Deg/Sec
+        sim.simxSetJointTargetVelocity(clientID,rightMotorHandle,3,sim.simx_opmode_oneshot) # Speed is Deg/Sec
 
         returnCode,data=sim.simxGetIntegerParameter(clientID,sim.sim_intparam_mouse_x,sim.simx_opmode_buffer) # Try to retrieve the streamed data
         if returnCode==sim.simx_return_ok: # After initialization of streaming, it will take a few ms before the first value arrives, so check the return code
